@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Student Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#080808;
+    --card1: rgba(33,13,42,0.95);
+    --card2: rgba(25,9,33,0.95);
+    --accent1: #9e4bff;
+    --accent2: #6f2bdc;
+    --glass: rgba(255,255,255,0.03);
+    --muted: rgba(255,255,255,0.18);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;background:var(--bg);font-family:'Poppins',system-ui,Segoe UI,Roboto; color:#efe9ff}
+  .wrap{max-width:1300px;margin:28px auto;padding:0 22px;}
+  header{text-align:center;margin-bottom:18px}
+  header h1{font-size:44px;margin:0;color:var(--accent1);letter-spacing:0.6px}
+  header p{color:var(--muted);margin-top:6px}
+
+  /* Grid: try to keep 2-3 cards per row, equal heights */
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fit,minmax(340px,1fr));
+    gap:28px;               /* slightly bigger gap so hover pop won't overlap neighbors */
+    align-items:start;
+  }
+  .card{
+    border-radius:20px;
+    padding:20px;
+    background: linear-gradient(180deg, rgba(35,18,40,0.85), rgba(22,10,30,0.9));
+    box-shadow: 0 8px 26px rgba(0,0,0,0.7), inset 0 1px 0 rgba(255,255,255,0.02);
+    min-height:340px;
+    position:relative;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    transition: transform .28s cubic-bezier(.2,.9,.3,1), box-shadow .28s ease, z-index .01s;
+    transform-origin: center top;
+    z-index: 1;
+  }
+  /* Hover "pop" with subtle purple glow (increases z-index to sit above neighbors) */
+  .card:hover{
+    transform: translateY(-8px) scale(1.02);
+    box-shadow:
+      0 30px 60px rgba(16,6,30,0.6),
+      0 0 36px rgba(158,75,255,0.12),
+      0 6px 24px rgba(111,43,220,0.10);
+    z-index: 10;
+  }
+
+  .card h2{margin:0 0 12px 0;font-size:18px;color:#efe9ff}
+  .muted{color:var(--muted); font-size:13px}
+
+  /* Clock style - pills */
+  .clock-digits{display:flex;gap:18px;justify-content:center;align-items:center;margin-top:18px}
+  .pill{
+    background: linear-gradient(180deg,var(--accent1),var(--accent2));
+    width:72px;height:72px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+    box-shadow: 0 8px 28px rgba(111,43,220,0.14), 0 2px 8px rgba(0,0,0,0.7);
+    font-weight:700;font-size:24px;color:#0a0012;
+  }
+  .clock-date{margin-top:18px;text-align:center;color:var(--muted);font-size:14px}
+
+  /* Pomodoro */
+  .pomo-controls{display:flex;gap:12px;margin-bottom:18px}
+  .seg{background:rgba(255,255,255,0.04);padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:600}
+  .seg.active{background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#0a0012}
+  .pomo-circle{margin:auto; width:130px;height:130px;border-radius:999px;display:flex;align-items:center;justify-content:center;
+    background: radial-gradient(circle at 30% 20%, rgba(255,255,255,0.03), transparent 20%),
+    linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.25));
+    box-shadow: inset 0 6px 18px rgba(0,0,0,0.5), 0 8px 30px rgba(0,0,0,0.6);
+    font-weight:700;font-size:20px;color:#efe9ff;
+  }
+  .pomo-actions{display:flex;gap:12px;justify-content:center;margin-top:14px}
+  .btn-round{width:46px;height:46px;border-radius:12px;border:none;display:inline-grid;place-items:center;cursor:pointer;
+    background:linear-gradient(180deg,var(--accent1),var(--accent2)); color:#0a0012;font-weight:700;
+  }
+
+  /* Todo list */
+  .todo-top{display:flex;gap:10px;margin-bottom:12px}
+  .input, .input-dl, textarea{background:transparent;border-radius:999px;padding:10px 14px;border:1px solid rgba(255,255,255,0.04);color:#efe9ff;outline:none}
+  .plus{width:44px;height:44px;border-radius:12px;background:linear-gradient(180deg,var(--accent1),var(--accent2));border:none;color:#0a0012;cursor:pointer}
+  .todo-list{margin-top:8px;flex:1;overflow:auto;padding-right:6px}
+  .todo-item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);margin-bottom:10px}
+  .todo-item.done{opacity:0.6;text-decoration:line-through}
+
+  /* Deadlines */
+  .deadline-form{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+  .deadline-list{flex:1;overflow:auto;padding-right:6px}
+  .deadline-item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:12px;background:rgba(255,255,255,0.02);margin-bottom:10px}
+  .time-left{font-size:13px;color:var(--muted)}
+
+  /* Chart area */
+  .chart-wrap{flex:1;display:flex;flex-direction:column}
+  #chart{flex:1;border-radius:12px;background:transparent}
+
+  /* Motivation - big card */
+  .motivation{display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:34px 20px}
+  .quote{font-style:italic;font-size:20px;max-width:900px;color:#efe9ff;opacity:0.95}
+  .author{margin-top:12px;color:var(--accent1);font-weight:600}
+
+  /* Notes area: left list and right editor */
+  .notes-grid{display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start;flex:1}
+  .note-card{padding:14px;border-radius:14px;background:linear-gradient(180deg, rgba(158,75,255,0.06), rgba(111,43,220,0.04));border:1px solid rgba(158,75,255,0.14)}
+  .note-list{display:flex;flex-direction:column;gap:12px;overflow:auto;max-height:220px}
+  .note-list-item{padding:12px;border-radius:12px;background:rgba(255,255,255,0.02);cursor:pointer}
+  .note-list-item.active{outline:2px solid rgba(158,75,255,0.25)}
+  .editor{display:flex;flex-direction:column;gap:10px;flex:1}
+  textarea.editor-area{min-height:170px;border-radius:12px;border:1px solid rgba(255,255,255,0.03);padding:12px;background:transparent;color:#efe9ff;resize:vertical}
+
+  /* small helpers */
+  .right-top{display:flex;align-items:center;gap:8px;position:absolute;right:18px;top:16px}
+  .small-btn{background:rgba(255,255,255,0.04);padding:6px 10px;border-radius:999px;border:none;color:#efe9ff;cursor:pointer}
+  /* scrollbar */
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.04);border-radius:8px}
+  @media (max-width:720px){
+    .notes-grid{grid-template-columns:1fr; }
+    .note-list{max-height:140px}
+  }
+
+  /* Chart edit modal (matches design) */
+  .modal {
+    display:none;
+    position:fixed;
+    inset:0;
+    background: rgba(0,0,0,0.6);
+    align-items:center;
+    justify-content:center;
+    z-index:2000;
+  }
+  .modal.show { display:flex; }
+  .modal-card {
+    width:360px;
+    border-radius:14px;
+    background: linear-gradient(180deg, rgba(28,12,44,0.95), rgba(20,8,33,0.96));
+    padding:18px;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.6);
+  }
+  .modal-card h3 { margin:0 0 12px 0; color:#efe9ff; }
+  .day-row { display:flex; gap:8px; margin-bottom:8px; align-items:center; }
+  .day-row label { width:100px; font-size:14px; color:var(--muted); }
+  .day-row input { flex:1; padding:8px; border-radius:10px; border:1px solid rgba(255,255,255,0.04); background:transparent; color:#efe9ff; }
+  .modal-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+  .btn-ghost { background:transparent; border:1px solid rgba(255,255,255,0.04); padding:8px 12px; border-radius:10px; color:#efe9ff; cursor:pointer; }
+  .btn-primary { background:linear-gradient(90deg,var(--accent1),var(--accent2)); color:#0a0012; border:none; padding:8px 12px; border-radius:10px; cursor:pointer; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Student Dashboard</h1>
+      <p>Your personal study companion with a chill vibe ✨</p>
+    </header>
+
+    <div class="grid">
+      <!-- Current Time -->
+      <section class="card" id="card-time">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h2>Current Time</h2>
+        </div>
+        <div class="clock-digits" aria-hidden="true">
+          <div class="pill" id="hh">00</div>
+          <div style="color:var(--muted);font-weight:700;font-size:28px">:</div>
+          <div class="pill" id="mm">00</div>
+          <div style="color:var(--muted);font-weight:700;font-size:28px">:</div>
+          <div class="pill" id="ss">00</div>
+        </div>
+        <div class="clock-date" id="clock-date">Sunday, Aug 10, 2025</div>
+      </section>
+
+      <!-- Pomodoro -->
+      <section class="card" id="card-pomo">
+        <h2>Pomodoro Timer</h2>
+        <div class="pomo-controls" id="pomo-segs">
+          <div class="seg active" data-min="25">25m</div>
+          <div class="seg" data-min="55">55m</div>
+          <div class="seg" data-min="75">75m</div>
+        </div>
+        <div style="display:flex;justify-content:center;align-items:center;flex:1">
+          <div class="pomo-circle" id="pomo-display">25:00</div>
+        </div>
+        <div class="pomo-actions">
+          <button class="btn-round" id="pomo-play">▶</button>
+          <button class="btn-round" id="pomo-reset">↺</button>
+        </div>
+      </section>
+
+      <!-- Todo List -->
+      <section class="card" id="card-todo">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>Todo List</h2>
+        </div>
+        <div class="todo-top">
+          <input id="todo-input" class="input" placeholder="Add a new task..." />
+          <button class="plus" id="todo-add">＋</button>
+        </div>
+        <div class="todo-list" id="todo-list"></div>
+      </section>
+
+      <!-- Deadlines -->
+      <section class="card" id="card-deadlines">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>Deadlines</h2>
+        </div>
+        <div class="deadline-form">
+          <input id="dl-title" class="input-dl" placeholder="Assignment title..." />
+        </div>
+        <div class="deadline-form">
+          <input id="dl-datetime" type="datetime-local" class="input-dl" />
+          <button class="plus" id="dl-add">＋</button>
+        </div>
+        <div class="deadline-list" id="deadline-list"></div>
+      </section>
+
+      <!-- Study Hours Chart -->
+      <section class="card" id="card-study">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>Study Hours This Week</h2>
+          <button class="small-btn" id="edit-data">Edit</button>
+        </div>
+        <div style="display:flex;gap:10px;margin:8px 0 12px;">
+          <input id="hours-input" type="number" placeholder="hours today" min="0" max="24" class="input" style="border-radius:999px;padding:8px 12px;width:150px" />
+          <button class="small-btn" id="hours-add" style="background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#fff">Add</button>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart"></canvas>
+        </div>
+      </section>
+
+      <!-- Motivation (full width card visually but fits grid) -->
+      <section class="card" id="card-motivation" style="grid-column: 1 / -1;">
+        <h2>Daily Motivation</h2>
+        <div class="motivation">
+          <div class="quote" id="quote">"The future belongs to those who believe in the beauty of their dreams."</div>
+          <div class="author" id="author">— Eleanor Roosevelt</div>
+          <div class="muted" style="margin-top:14px;opacity:0.8">Take a moment to reflect on this wisdom as you study today.</div>
+        </div>
+      </section>
+
+      <!-- Notes (full width ) -->
+      <section class="card" id="card-notes" style="grid-column: 1 / -1;">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <h2>Notes</h2>
+          <div class="right-top">
+            <button class="small-btn" id="new-note">＋ New Note</button>
+          </div>
+        </div>
+
+        <div class="notes-grid" style="margin-top:12px">
+          <div>
+            <div class="note-card" style="margin-bottom:12px">
+              <strong class="muted">Your Notes</strong>
+            </div>
+            <div class="note-list" id="note-list"></div>
+          </div>
+          <div>
+            <div class="editor">
+              <input id="note-title" class="input" placeholder="Untitled Note" style="border-radius:14px" />
+              <textarea id="note-body" class="editor-area" placeholder="Start writing your notes..."></textarea>
+              <div style="display:flex;gap:8px;justify-content:flex-end">
+                <button class="small-btn" id="save-note" style="background:linear-gradient(90deg,var(--accent1),var(--accent2));color:#0a0012">Save</button>
+                <button class="small-btn" id="delete-note">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+    </div>
+  </div>
+
+  <!-- Chart Edit Modal -->
+  <div class="modal" id="chartModal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="chartModalTitle">
+      <h3 id="chartModalTitle">Edit Study Hours (Mon → Sun)</h3>
+      <div id="chartInputs"></div>
+      <div class="modal-actions">
+        <button class="btn-ghost" id="chartCancel">Cancel</button>
+        <button class="btn-primary" id="chartSave">Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* Utilities */
+const $ = (s)=>document.querySelector(s);
+const $$ = (s)=>document.querySelectorAll(s);
+const save = (k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const load = (k,d)=>JSON.parse(localStorage.getItem(k) || JSON.stringify(d));
+
+/* --- CLOCK --- */
+function tick(){
+  const now = new Date();
+  let hh = String(now.getHours()).padStart(2,'0');
+  let mm = String(now.getMinutes()).padStart(2,'0');
+  let ss = String(now.getSeconds()).padStart(2,'0');
+  $('#hh').textContent = hh;
+  $('#mm').textContent = mm;
+  $('#ss').textContent = ss;
+  $('#clock-date').textContent = now.toLocaleString(undefined,{weekday:'long', month:'long', day:'numeric', year: 'numeric'});
+}
+tick(); setInterval(tick,1000);
+
+/* --- POMODORO --- */
+let pomoMinutes = 25;
+let pomoSeconds = pomoMinutes*60;
+let pomoTimer = null;
+function updatePomoDisplay(){
+  const mm = String(Math.floor(pomoSeconds/60)).padStart(2,'0');
+  const ss = String(pomoSeconds%60).padStart(2,'0');
+  $('#pomo-display').textContent = `${mm}:${ss}`;
+}
+function setPomo(min){
+  pomoMinutes = min; pomoSeconds = min*60; updatePomoDisplay();
+  $$('.seg').forEach(s=> s.classList.toggle('active', +s.dataset.min===min));
+}
+$$('.seg').forEach(s=> s.addEventListener('click', ()=> setPomo(+s.dataset.min)));
+$('#pomo-play').addEventListener('click', ()=>{
+  if(pomoTimer){ clearInterval(pomoTimer); pomoTimer=null; $('#pomo-play').textContent='▶'; return; }
+  pomoTimer = setInterval(()=>{
+    if(pomoSeconds<=0){ clearInterval(pomoTimer); pomoTimer=null; return; }
+    pomoSeconds--; updatePomoDisplay();
+  },1000);
+  $('#pomo-play').textContent='▌▌';
+});
+$('#pomo-reset').addEventListener('click', ()=> { setPomo(pomoMinutes); clearInterval(pomoTimer); pomoTimer=null; $('#pomo-play').textContent='▶';});
+setPomo(25);
+
+/* --- TODO --- */
+let todos = load('todos', []);
+function renderTodos(){
+  const wrap = $('#todo-list'); wrap.innerHTML='';
+  todos.forEach((t,i)=>{
+    const el = document.createElement('div'); el.className='todo-item' + (t.done? ' done':'');
+    const left = document.createElement('div'); left.style.display='flex'; left.style.alignItems='center'; left.style.gap='10px';
+    const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=t.done;
+    chk.onchange = ()=>{ todos[i].done = chk.checked; save('todos', todos); renderTodos(); };
+    const txt = document.createElement('div'); txt.textContent = t.text;
+    left.appendChild(chk); left.appendChild(txt);
+    const del = document.createElement('button'); del.className='small-btn'; del.textContent='✕';
+    del.onclick = ()=>{ todos.splice(i,1); save('todos',todos); renderTodos();}
+    el.appendChild(left); el.appendChild(del);
+    wrap.appendChild(el);
+  });
+}
+$('#todo-add').addEventListener('click', ()=>{
+  const v = $('#todo-input').value.trim(); if(!v) return; todos.push({text:v,done:false}); save('todos',todos); $('#todo-input').value=''; renderTodos();
+});
+$('#todo-input').addEventListener('keydown', e=>{ if(e.key==='Enter') $('#todo-add').click();});
+renderTodos();
+
+/* --- DEADLINES --- */
+let deadlines = load('deadlines', []);
+function renderDeadlines(){
+  const wrap = $('#deadline-list'); wrap.innerHTML='';
+  deadlines.forEach((d,i)=>{
+    const el = document.createElement('div'); el.className='deadline-item';
+    const left = document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
+    const title = document.createElement('div'); title.textContent = d.title; title.style.fontWeight=600;
+    const date = document.createElement('div'); date.className='muted'; date.style.fontSize='13px';
+    const dt = new Date(d.time); date.textContent = dt.toLocaleString();
+    left.appendChild(title); left.appendChild(date);
+
+    const right = document.createElement('div'); right.style.display='flex'; right.style.alignItems='center'; right.style.gap='10px';
+    const timeLeft = document.createElement('div'); timeLeft.className='time-left';
+    function updateLeft(){ timeLeft.textContent = timeRemainingString(d.time); if(new Date(d.time) - new Date() <= 0){ timeLeft.textContent='Expired' } }
+    updateLeft(); setInterval(updateLeft,1000);
+    const del = document.createElement('button'); del.className='small-btn'; del.textContent='✕';
+    del.onclick = ()=>{ deadlines.splice(i,1); save('deadlines',deadlines); renderDeadlines(); }
+    right.appendChild(timeLeft); right.appendChild(del);
+
+    el.appendChild(left); el.appendChild(right);
+    wrap.appendChild(el);
+  });
+}
+function timeRemainingString(end){
+  const diff = new Date(end) - new Date();
+  if(diff<=0) return 'Expired';
+  const d = Math.floor(diff/86400000);
+  const h = Math.floor((diff%86400000)/3600000);
+  const m = Math.floor((diff%3600000)/60000);
+  return `${d}d ${h}h ${m}m`;
+}
+$('#dl-add').addEventListener('click', ()=>{
+  const t = $('#dl-title').value.trim(); const time = $('#dl-datetime').value;
+  if(!t || !time) return alert('Please add title and date/time');
+  deadlines.push({title:t,time}); save('deadlines',deadlines); $('#dl-title').value=''; $('#dl-datetime').value=''; renderDeadlines();
+});
+renderDeadlines();
+
+/* --- Chart (study hours) --- */
+const canvas = $('#chart'); const ctx = canvas.getContext('2d');
+const dayLabels = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+
+function fitCanvas(){
+  const rect = canvas.getBoundingClientRect();
+  // ensure canvas has some height if zero
+  if(rect.height === 0){
+    canvas.style.height = '220px';
+  }
+  const rect2 = canvas.getBoundingClientRect();
+  canvas.width = rect2.width * devicePixelRatio;
+  canvas.height = rect2.height * devicePixelRatio;
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+}
+window.addEventListener('resize', ()=>{ fitCanvas(); drawChart(); });
+fitCanvas();
+let study = load('study', [3,6,2,4,7,5,1]); // default 7 days
+
+function drawChart(){
+  fitCanvas();
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  ctx.clearRect(0,0,w,h);
+  // background subtle grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth=1;
+  for(let i=0;i<6;i++){
+    const y = 20 + i*(h-40)/5;
+    ctx.beginPath(); ctx.moveTo(40,y); ctx.lineTo(w-10,y); ctx.stroke();
+  }
+
+  // ensure study has exactly 7 entries
+  if (!Array.isArray(study)) study = [0,0,0,0,0,0,0];
+  while(study.length < 7) study.push(0);
+  if (study.length > 7) study = study.slice(-7);
+
+  // bars
+  const max = Math.max(8, ...study);
+  const cw = (w-70) / 7;
+  for(let i=0;i<7;i++){
+    const val = study[i] || 0;
+    const bx = 40 + i*cw + 10;
+    const bh = ((val/max)*(h-60));
+    // gradient
+    const g = ctx.createLinearGradient(0,h-bh,0,h);
+    g.addColorStop(0, 'rgba(158,75,255,0.95)');
+    g.addColorStop(1, 'rgba(111,43,220,0.7)');
+    ctx.fillStyle = g;
+    roundRect(ctx,bx,h-30-bh,cw-20,bh,10,true,false);
+    // value label above bar
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.font = '600 12px Poppins';
+    const textW = ctx.measureText(String(val)).width;
+    ctx.fillText(String(val), bx + (cw-20)/2 - textW/2, h-36-bh);
+    // day label under bar
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '12px Poppins';
+    const lab = dayLabels[i];
+    const labW = ctx.measureText(lab).width;
+    ctx.fillText(lab, bx + (cw-20)/2 - labW/2, h - 8);
+  }
+
+  // y-axis labels
+  ctx.fillStyle = 'rgba(255,255,255,0.3)'; ctx.font='12px Poppins';
+  for(let i=0;i<=5;i++){ const v = Math.round(max*(5-i)/5); ctx.fillText(v,6,20 + i*(h-40)/5 +4); }
+}
+function roundRect(ctx,x,y,w,h,r,fill,stroke){ if (typeof r === 'undefined') r = 5; ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); if(fill) ctx.fill(); if(stroke) ctx.stroke(); }
+drawChart();
+
+/* Add hours -> update today's day (Mon=0..Sun=6) */
+$('#hours-add').addEventListener('click', ()=>{
+  const v = parseFloat($('#hours-input').value);
+  if(isNaN(v)) return;
+  // map JS getDay (0=Sun,1=Mon...) -> Monday=0 ... Sunday=6
+  const jsDay = new Date().getDay();
+  const monIndex = (jsDay + 6) % 7;
+  study[monIndex] = v;
+  save('study',study);
+  $('#hours-input').value = '';
+  drawChart();
+});
+
+/* --- Chart Edit Modal logic --- */
+const chartModal = $('#chartModal');
+const chartInputs = $('#chartInputs');
+$('#edit-data').addEventListener('click', ()=>{
+  // build inputs for Mon..Sun with current values
+  chartInputs.innerHTML = '';
+  for(let i=0;i<7;i++){
+    const row = document.createElement('div'); row.className = 'day-row';
+    const label = document.createElement('label'); label.textContent = dayLabels[i];
+    const input = document.createElement('input'); input.type='number'; input.min=0; input.max=24; input.step='0.1';
+    input.id = `chart-day-${i}`; input.value = (study[i] != null ? study[i] : 0);
+    row.appendChild(label); row.appendChild(input);
+    chartInputs.appendChild(row);
+  }
+  chartModal.classList.add('show');
+  chartModal.setAttribute('aria-hidden','false');
+});
+$('#chartCancel').addEventListener('click', ()=>{ chartModal.classList.remove('show'); chartModal.setAttribute('aria-hidden','true'); });
+$('#chartSave').addEventListener('click', ()=>{
+  const newVals = [];
+  for(let i=0;i<7;i++){
+    const v = parseFloat($(`#chart-day-${i}`).value);
+    newVals.push(isNaN(v) ? 0 : v);
+  }
+  study = newVals;
+  save('study',study);
+  drawChart();
+  chartModal.classList.remove('show');
+  chartModal.setAttribute('aria-hidden','true');
+});
+chartModal.addEventListener('click', (e)=>{ if(e.target === chartModal){ chartModal.classList.remove('show'); chartModal.setAttribute('aria-hidden','true'); } });
+
+/* --- Motivation quotes --- */
+const quotes = [
+  {q:'Imagination is more important than knowledge.', a:'Albert Einstein'},
+  {q:'The unexamined life is not worth living.', a:'Socrates'},
+  {q:'We are what we repeatedly do. Excellence, then, is not an act, but a habit.', a:'Aristotle'},
+  {q:'The future belongs to those who prepare today.', a:'Malcolm X'},
+  {q:'The best way to predict the future is to invent it.', a:'Alan Kay'}
+];
+const pick = quotes[Math.floor(Math.random()*quotes.length)];
+$('#quote').textContent = `"${pick.q}"`;
+$('#author').textContent = `— ${pick.a}`;
+
+/* --- Notes --- */
+let notes = load('notes', [
+  {id:Date.now()+1,title:'Untitled Note',body:'No content', date: new Date().toLocaleDateString()},
+  {id:Date.now()+2,title:'Quantum Physics Notes',body:'Wave-particle duality is a fundamental concept...', date: new Date().toLocaleDateString()}
+]);
+let activeNoteId = notes[0]?.id || null;
+function renderNotes(){
+  const list = $('#note-list'); list.innerHTML='';
+  notes.forEach(n=>{
+    const el = document.createElement('div'); el.className='note-list-item' + (n.id===activeNoteId? ' active':'');
+    el.innerHTML = `<strong>${n.title}</strong><div class="muted" style="font-size:12px;margin-top:6px">${n.body.slice(0,80)}</div><div class="muted" style="font-size:11px;margin-top:6px">${n.date}</div>`;
+    el.onclick = ()=>{ activeNoteId = n.id; populateEditor(); renderNotes(); };
+    list.appendChild(el);
+  });
+  populateEditor();
+}
+function populateEditor(){
+  const n = notes.find(x=>x.id===activeNoteId) || {title:'',body:'',date:''};
+  $('#note-title').value = n.title || '';
+  $('#note-body').value = n.body || '';
+}
+$('#new-note').addEventListener('click', ()=>{
+  const nn = {id:Date.now(),title:'Untitled Note',body:'',date:new Date().toLocaleDateString()};
+  notes.unshift(nn); activeNoteId = nn.id; save('notes',notes); renderNotes();
+});
+$('#save-note').addEventListener('click', ()=>{
+  const n = notes.find(x=>x.id===activeNoteId);
+  if(n){ n.title = $('#note-title').value || 'Untitled Note'; n.body = $('#note-body').value || ''; n.date = new Date().toLocaleDateString(); save('notes',notes); renderNotes(); }
+});
+$('#delete-note').addEventListener('click', ()=>{
+  notes = notes.filter(x=>x.id!==activeNoteId); activeNoteId = notes[0]?.id || null; save('notes',notes); renderNotes();
+});
+renderNotes();
+
+/* Helper init */
+save('todos', todos); save('deadlines',deadlines); save('study',study); save('notes',notes);
+renderTodos(); renderDeadlines(); drawChart();
+
+</script>
+</body>
+</html>
